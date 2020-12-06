@@ -1,11 +1,10 @@
 #include <float.h>
 #include <math.h>
-#include <utility>
-#include <vector>
 #include <SFML/Graphics.hpp>
 #include "ftools.hpp"
 
 #define DATA_FILENAME "points.ssv"
+#define MAX_ITERATIONS 100
 
 sf::Color colors[] = {
   sf::Color::Red,
@@ -17,57 +16,49 @@ sf::Color colors[] = {
   sf::Color::White,
 };
 
-double euclidean_distance(const sf::Vertex&, const sf::Vertex&);
-void kmeans(sf::VertexArray&, int);
+sf::VertexArray data_points(sf::Points);
+std::vector<size_t> point_cluster_kind;
+std::vector<sf::Vertex> means;
+size_t vertexCount;
+size_t num_clusters;
+bool should_calculate;
+
+inline double euclidean_distance(const sf::Vertex&, const sf::Vertex&);
+void kmeans_iteration();
 
 int main() {
-  sf::VertexArray data_points(sf::Points);
+  srand( time(NULL) );
+
   std::cout << "Loding data points..." << std::endl;
   ftools::readFromFile(DATA_FILENAME, &data_points);
   std::cout << "Loaded data points." << std::endl;
-  size_t num_clusters;
+
+  vertexCount = data_points.getVertexCount();
+  point_cluster_kind.resize(data_points.getVertexCount());
+
   std::cout << "How many clusters should be calculated?" << std::endl;
   std::cin >> num_clusters;
   std::cout << "Calculating k-means with " << num_clusters << " clusters.\n";
-  // kmeans(data_points, num_clusters);
+
+  means.resize(num_clusters);
+  for (size_t i = 0; i < num_clusters; ++i) {
+    means[i] = data_points[rand() % vertexCount];
+    means[i].color = colors[i%7];
+    // means[i].color = sf::Color(sf::Color(rand() % 156 + 100, rand() % 156 + 100,
+                                         // rand() % 156 + 100));
+  }
+
   sf::RenderWindow window(sf::VideoMode(1280, 720), "K-means Clustering");
-  window.setFramerateLimit(5);
-  sf::View view(sf::FloatRect(58.f, 80.f, 260.f, 170.f));
+  window.setFramerateLimit(30);
+
+  sf::View view(sf::FloatRect(0.f, 0.f, 110.f, 55.f));
+  view.setCenter(-44.f, 20.f);
+
   bool mouse_moving = false;
   sf::Vector2f oldPos;
-  // std::vector<int> initial_centroids(num_clusters);
-  std::vector<sf::Vertex*> initial_centroids(num_clusters);
 
-  for (size_t i = 0; i < num_clusters; ++i) {
-    initial_centroids[i] = &data_points[rand() % data_points.getVertexCount()];
-    initial_centroids[i]->color = sf::Color(colors[i]);
-    // initial_centroids[i]->color = sf::Color(rand()%156 + 100, rand()%156 + 100,
-                                            // rand()%156 + 100);
-    // std::cout << "Color for centroid " << i << ": " << (int)initial_centroids[i]->color.r << " " << (int)initial_centroids[i]->color.g << " " << (int)initial_centroids[i]->color.b << "\n";;
-  }
-
-  size_t vertexCount = data_points.getVertexCount();
-  double dist, min_dist;
-  size_t i, j;
-
-  for (i = 0; i < vertexCount; ++i) {
-    min_dist = DBL_MAX;
-
-    for (j = 0; j < num_clusters; ++j) {
-      dist = euclidean_distance(data_points[i], *initial_centroids[j]);
-
-      if (dist < min_dist) {
-        min_dist = dist;
-        data_points[i].color = initial_centroids[j]->color;
-        // std::cout << "Color for data point " << i << ": " << (int)data_points[i].color.r << " " << (int)data_points[i].color.g << " " << (int)data_points[i].color.b << "\n";;
-      }
-    }
-  }
-
-  std::vector<sf::Vertex> means(num_clusters);
-  for (j = 0; j < num_clusters; ++j)
-    means[j].color = initial_centroids[j]->color;
-
+  should_calculate = true;
+  size_t iterations = 0;
   while (window.isOpen()) {
     sf::Event event;
 
@@ -104,9 +95,22 @@ int main() {
                                         event.mouseMove.x, event.mouseMove.y));
           const sf::Vector2f deltaPos = oldPos - newPos;
           view.setCenter(view.getCenter() + deltaPos);
-          window.setView(view);
           oldPos = window.mapPixelToCoords(sf::Vector2i(event.mouseMove.x,
                                            event.mouseMove.y));
+          break;
+        }
+
+        case sf::Event::KeyReleased: {
+          if (event.key.code == sf::Keyboard::X) {
+            view.reset(sf::FloatRect(0.f, 0.f, 0.453083f, 0.226542f));
+            view.setCenter(-73.9336f, 40.741f);
+          }
+
+          if (event.key.code == sf::Keyboard::Z) {
+            view.reset(sf::FloatRect(0.f, 0.f, 110.f, 55.f));
+            view.setCenter(-44.f, 20.f);
+          }
+
           break;
         }
 
@@ -115,54 +119,16 @@ int main() {
       }
     }
 
-
-    for (i = 0; i < num_clusters; ++i) {
-      means[i].position.x = 0;
-      means[i].position.y = 0;
-    }
-
-    std::vector<int> elem_count(num_clusters, 0);
-
-    for (i = 0; i < vertexCount; ++i) {
-      for (j = 0; j < num_clusters; ++j) {
-        if (means[j].color == data_points[i].color) {
-          means[j].position.x += data_points[i].position.x;
-          means[j].position.y += data_points[i].position.y;
-          ++elem_count[j];
-          continue;
-        }
-      }
-    }
-
-    for (j = 0; j < num_clusters; ++j) {
-      means[j].position.x = means[j].position.x / elem_count[j];
-      means[j].position.y = means[j].position.y / elem_count[j];
-    }
-
-    for (i = 0; i < vertexCount; ++i) {
-      for (j = 0; j < num_clusters; ++j)
-        if (data_points[j].color == means[j].color)
-          min_dist = euclidean_distance(data_points[j], means[j]);
-
-      for (j = 0; j < num_clusters; ++j) {
-        dist = euclidean_distance(data_points[i], means[j]);
-
-        if (dist < min_dist) {
-          min_dist = dist;
-
-          if (data_points[i].color != means[j].color) {
-            data_points[i].color = means[j].color;
-          }
-
-          // std::cout << "Color for data point " << i << ": " << (int)data_points[i].color.r << " " << (int)data_points[i].color.g << " " << (int)data_points[i].color.b << "\n";;
-        }
-      }
-    }
-
     window.setView(view);
     window.clear();
     window.draw(data_points);
     window.display();
+    sf::sleep(sf::milliseconds(500));
+
+    if (iterations < MAX_ITERATIONS && should_calculate) {
+      ++iterations;
+      kmeans_iteration();
+    }
   }
 
   return 0;
@@ -174,84 +140,46 @@ inline double euclidean_distance(const sf::Vertex& a, const sf::Vertex& b) {
   return sqrt(x*x + y*y);
 }
 
-void kmeans(sf::VertexArray& data_points, int num_clusters) {
-  // std::vector<int> initial_centroids(num_clusters);
-  std::vector<sf::Vertex*> initial_centroids(num_clusters);
-
-  for (int i = 0; i < num_clusters; ++i) {
-    initial_centroids[i] = &data_points[rand() % data_points.getVertexCount()];
-    initial_centroids[i]->color = sf::Color(rand()%156 + 100, rand()%156 + 100,
-                                            rand()%156 + 100);
-    // std::cout << "Color for centroid " << i << ": " << (int)initial_centroids[i]->color.r << " " << (int)initial_centroids[i]->color.g << " " << (int)initial_centroids[i]->color.b << "\n";;
-  }
-
-  int vertexCount = data_points.getVertexCount();
-  double dist, min_dist;
-  int i, j;
+void kmeans_iteration() {
+  size_t i, j;
+  double min_dist, dist;
 
   for (i = 0; i < vertexCount; ++i) {
     min_dist = DBL_MAX;
 
     for (j = 0; j < num_clusters; ++j) {
-      dist = euclidean_distance(data_points[i], *initial_centroids[j]);
+      dist = euclidean_distance(data_points[i], means[j]);
 
       if (dist < min_dist) {
         min_dist = dist;
-        data_points[i].color = initial_centroids[j]->color;
-        // std::cout << "Color for data point " << i << ": " << (int)data_points[i].color.r << " " << (int)data_points[i].color.g << " " << (int)data_points[i].color.b << "\n";;
+        data_points[i].color = means[j].color;
+        point_cluster_kind[i] = j;
       }
     }
   }
-
-  bool changed = true;
-  std::vector<sf::Vertex> means(num_clusters);
 
   for (j = 0; j < num_clusters; ++j)
-    means[j].color = initial_centroids[j]->color;
+    means[j].position = sf::Vector2f(0, 0);
 
-  while (changed) {
-    changed = false;
+  std::vector<int> elem_count(num_clusters, 0);
 
-    for (i = 0; i < num_clusters; ++i) {
-      means[i].position.x = 0;
-      means[i].position.y = 0;
-    }
-
-    std::vector<int> elem_count(num_clusters, 0);
-
-    for (i = 0; i < vertexCount; ++i) {
-      for (j = 0; j < num_clusters; ++j) {
-        if (means[j].color == data_points[i].color) {
-          means[j].position.x += data_points[i].position.x;
-          means[j].position.y += data_points[i].position.y;
-          ++elem_count[j];
-          continue;
-        }
-      }
-    }
-
-    for (j = 0; j < num_clusters; ++j) {
-      means[j].position.x = means[j].position.x / elem_count[j];
-      means[j].position.y = means[j].position.y / elem_count[j];
-    }
-
-    for (i = 0; i < vertexCount; ++i) {
-      min_dist = DBL_MAX;
-
-      for (j = 0; j < num_clusters; ++j) {
-        dist = euclidean_distance(data_points[i], means[j]);
-
-        if (dist < min_dist) {
-          min_dist = dist;
-
-          if (data_points[i].color != means[j].color) {
-            data_points[i].color = means[j].color;
-            changed = true;
-          }
-
-          // std::cout << "Color for data point " << i << ": " << (int)data_points[i].color.r << " " << (int)data_points[i].color.g << " " << (int)data_points[i].color.b << "\n";;
-        }
-      }
-    }
+  for (i = 0; i < vertexCount; ++i) {
+    size_t cluster_kind = point_cluster_kind[i];
+    means[cluster_kind].position += data_points[i].position;
+    ++elem_count[ cluster_kind ];
   }
+
+  size_t unchanged_clusters = 0;
+
+  for (j = 0; j < num_clusters; ++j) {
+    sf::Vector2f old_pos = means[j].position;
+    means[j].position.x /= elem_count[j];
+    means[j].position.y /= elem_count[j];
+
+    if (means[j].position == old_pos)
+      ++unchanged_clusters;
+  }
+
+  if (unchanged_clusters == num_clusters)
+    should_calculate = false;
 }

@@ -21,14 +21,12 @@ void readFromFile(std::string filename,
   double start_lon, start_lat;
   std::string reg;
 
-  int i = 0;
-  while (getline(points, reg) && i++ < 100000) {
-  // while (getline(points, reg)) {
+  while (getline(points, reg)) {
     std::stringstream point(reg);
     point >> start_lon >> start_lat;
 
-    data_points->append(sf::Vertex(sf::Vector2f(start_lon + 180, start_lat + 90),
-                                      sf::Color::White));
+    data_points->append(sf::Vertex(sf::Vector2f(start_lon, start_lat),
+                                   sf::Color::White));
   }
 }
 
