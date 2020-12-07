@@ -4,8 +4,8 @@ The algorithm can be visualized as it goes.
 
 ## Dependencies
 The project was made using the
-[Simple and Fast Multimedia Library (SFML)](https://www.sfml-dev.org/)
-using version ```2.5.1-2```.
+[Simple and Fast Multimedia Library (SFML)](https://www.sfml-dev.org/) 
+version ```2.5.1-2```.
 The project hasn't been tested on any other version of the library.
 
 ## Data file
@@ -32,7 +32,7 @@ Example of a valid file:
 
 ### For the given sample
 The given sample file was preprocessed to meet the above requirement.
-The file should be ready to use by deleting
+The file should be ready to be used by deleting
 the first two lines of the original file
 (the one with the name of the columns and the blank line) and running the
 following command, which will give us the desired format.
@@ -41,14 +41,14 @@ awk -F "," '{print $6, $7}' sample.csv > points.ssv
 ```
 
 ## Usage
-On start, the porgram will prompt for the
+On start, the program will prompt for the
 desired number of clusters to be found.
 On its current state, the program will work well with **up to 7 clusters**.
 This due to only having 7 colors in the ```colors``` array in line 9.
 If you don't mind colors between clusters being random (and probably being very
 similar to each other),
 you can comment line 46 and uncomment lines 47 and 48.
-This will let you set a higher amount of cluster with different colors 
+This will let you set a higher amount of clusters with different colors 
 (hopefully).
 
 Also, if you want to modify the speed of the animation, you can change
@@ -56,11 +56,11 @@ the value in line 126 to whatever fits you. Currently, the time between steps
 of the animation is set to 500 milliseconds.
 
 ### Controls
-If you press X, the view will be centered on the big point concentration 
+- If you press X, the view will be centered on the big point concentration 
 (bottom-left) of the given sample file.
-If you press Z, you will return to the full view of the given sample.
-You can drag the mouse to move around.
-You can use the mouse scroll wheel to zoom in and out.
+- If you press Z, you will return to the full view of the given sample.
+- You can drag the mouse to move around.
+- You can use the mouse scroll wheel to zoom in and out.
 
 ## Personal Opinion
 The dataset is too tight (the points are too close to each other) for the
