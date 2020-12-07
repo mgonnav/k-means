@@ -51,7 +51,9 @@ you can comment line 46 and uncomment lines 47 and 48.
 This will let you set a higher amount of cluster with different colors 
 (hopefully).
 
-Also, 
+Also, if you want to modify the speed of the animation, you can change
+the value in line 126 to whatever fits you. Currently, the time between steps
+of the animation is set to 500 milliseconds.
 
 ### Controls
 If you press X, the view will be centered on the big point concentration 
