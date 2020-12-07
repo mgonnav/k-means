@@ -62,9 +62,16 @@ If you press Z, you will return to the full view of the given sample.
 You can drag the mouse to move around.
 You can use the mouse scroll wheel to zoom in and out.
 
-## Opinion
+## Personal Opinion
 The dataset is too tight (the points are too close to each other) for the
-k-means algorithm to be efficient and give good results.
+k-means algorithm to be efficient and give good results. Moreover, there are
+some values in the dataset which don't make sense.
+Some of them had latitudes and longitudes higher or lower than their limits.
+(e.g. on of them had latitude = 1140).
+
+Also, having small sets of points together will lead to them having their
+own cluster. However, these sets (the top ones) are extremely small compared
+to the main one (bottom left), therefore introducing noise.
 
 ## Example of the visualization
 ### Full view
